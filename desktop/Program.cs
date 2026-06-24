@@ -56,41 +56,27 @@ class VideoParserDesktop : Form
             BackColor = Color.FromArgb(12, 14, 22)
         };
 
-        // 关闭按钮
-        var btnClose = new Button
-        {
-            Text = "×",
-            FlatStyle = FlatStyle.Flat,
-            Size = new Size(36, 28),
-            Location = new Point(this.Width - 40, 2),
-            ForeColor = Color.FromArgb(180, 180, 180),
-            BackColor = Color.Transparent,
-            Font = new Font("Segoe UI", 14, FontStyle.Regular),
-            Anchor = AnchorStyles.Top | AnchorStyles.Right
-        };
-        btnClose.FlatAppearance.BorderSize = 0;
-        btnClose.FlatAppearance.MouseOverBackColor = Color.FromArgb(232, 17, 35);
+        // ====== 左侧可点击圆点（macOS 风格） ======
+        var btnClose = MakeDotButton(14, Color.FromArgb(255, 95, 86), Color.FromArgb(220, 50, 50));
         btnClose.Click += (s, e) => Shutdown();
-        btnClose.MouseEnter += (s, e) => btnClose.ForeColor = Color.White;
-        btnClose.MouseLeave += (s, e) => btnClose.ForeColor = Color.FromArgb(180, 180, 180);
+        btnClose.MouseEnter += (s, e) => { var b = (Button)s; b.Text = "×"; b.Font = new Font("Segoe UI", 8, FontStyle.Bold); };
+        btnClose.MouseLeave += (s, e) => { var b = (Button)s; b.Text = ""; };
+        titleBar.Controls.Add(btnClose);
 
-        // 最小化按钮
-        var btnMin = new Button
-        {
-            Text = "−",
-            FlatStyle = FlatStyle.Flat,
-            Size = new Size(36, 28),
-            Location = new Point(this.Width - 80, 2),
-            ForeColor = Color.FromArgb(180, 180, 180),
-            BackColor = Color.Transparent,
-            Font = new Font("Segoe UI", 14, FontStyle.Regular),
-            Anchor = AnchorStyles.Top | AnchorStyles.Right
-        };
-        btnMin.FlatAppearance.BorderSize = 0;
-        btnMin.FlatAppearance.MouseOverBackColor = Color.FromArgb(60, 60, 70);
+        var btnMin = MakeDotButton(30, Color.FromArgb(255, 189, 46), Color.FromArgb(220, 160, 20));
         btnMin.Click += (s, e) => this.WindowState = FormWindowState.Minimized;
+        btnMin.MouseEnter += (s, e) => { var b = (Button)s; b.Text = "−"; b.Font = new Font("Segoe UI", 8, FontStyle.Bold); };
+        btnMin.MouseLeave += (s, e) => { var b = (Button)s; b.Text = ""; };
+        titleBar.Controls.Add(btnMin);
 
-        // 标题文字
+        var btnMax = MakeDotButton(46, Color.FromArgb(39, 201, 63), Color.FromArgb(30, 180, 50));
+        btnMax.Click += (s, e) => {
+            this.WindowState = this.WindowState == FormWindowState.Maximized
+                ? FormWindowState.Normal : FormWindowState.Maximized;
+        };
+        titleBar.Controls.Add(btnMax);
+
+        // ====== 标题文字 ======
         var titleLabel = new Label
         {
             Text = "视频解析器",
@@ -100,16 +86,7 @@ class VideoParserDesktop : Form
             TextAlign = ContentAlignment.MiddleCenter,
             Dock = DockStyle.Fill
         };
-
         titleBar.Controls.Add(titleLabel);
-        titleBar.Controls.Add(btnClose);
-        titleBar.Controls.Add(btnMin);
-        titleBar.Controls.Add(new Panel { Width = 60, Dock = DockStyle.Left }); // 左侧留空给三个圆点
-
-        // 三个圆点装饰
-        AddDot(titleBar, 14, 11, Color.FromArgb(255, 95, 86));
-        AddDot(titleBar, 30, 11, Color.FromArgb(255, 189, 46));
-        AddDot(titleBar, 46, 11, Color.FromArgb(39, 201, 63));
 
         // 拖动事件
         titleBar.MouseDown += (s, e) => { isDragging = true; dragStart = e.Location; };
@@ -127,15 +104,6 @@ class VideoParserDesktop : Form
             Dock = DockStyle.Fill
         };
         this.Controls.Add(webView);
-
-        // 窗口大小变化时调整关闭按钮位置
-        this.Resize += (s, e) =>
-        {
-            try {
-                btnClose.Location = new Point(this.ClientSize.Width - 40, 2);
-                btnMin.Location = new Point(this.ClientSize.Width - 80, 2);
-            } catch {}
-        };
 
         // 启动后端服务
         StartBackend(baseDir);
@@ -160,19 +128,26 @@ class VideoParserDesktop : Form
         this.FormClosing += (s, e) => Shutdown();
     }
 
-    private void AddDot(Panel parent, int x, int y, Color color)
+    private Button MakeDotButton(int x, Color color, Color hoverColor)
     {
-        var dot = new Panel
+        var btn = new Button
         {
-            Size = new Size(10, 10),
-            Location = new Point(x, y),
-            BackColor = color
+            Size = new Size(14, 14),
+            Location = new Point(x, 9),
+            FlatStyle = FlatStyle.Flat,
+            ForeColor = Color.White,
+            BackColor = color,
+            Text = "",
+            Font = new Font("Segoe UI", 7, FontStyle.Bold),
+            TextAlign = ContentAlignment.MiddleCenter
         };
-        // 用 Region 做圆形
+        btn.FlatAppearance.BorderSize = 0;
+        btn.FlatAppearance.MouseOverBackColor = hoverColor;
+        // 圆形
         var path = new System.Drawing.Drawing2D.GraphicsPath();
-        path.AddEllipse(0, 0, 10, 10);
-        dot.Region = new Region(path);
-        parent.Controls.Add(dot);
+        path.AddEllipse(0, 0, 14, 14);
+        btn.Region = new Region(path);
+        return btn;
     }
 
     private void StartBackend(string baseDir)
