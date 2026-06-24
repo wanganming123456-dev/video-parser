@@ -4,7 +4,6 @@ using System.Drawing;
 using System.IO;
 using System.IO.Compression;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
 using Microsoft.Web.WebView2.WinForms;
@@ -13,9 +12,6 @@ class VideoParserDesktop : Form
 {
     private WebView2 webView;
     private Process nodeProcess;
-    private Panel titleBar;
-    private bool isDragging = false;
-    private Point dragStart;
 
     [STAThread]
     static void Main()
@@ -27,12 +23,12 @@ class VideoParserDesktop : Form
 
     public VideoParserDesktop()
     {
-        // ====== 窗口配置 ======
-        this.Text = "视频解析器";
+        // ====== 窗口配置（Windows 原生标题栏） ======
+        this.Text = "视频解析器 — 抖音/快手无水印下载";
         this.Size = new Size(1050, 720);
         this.MinimumSize = new Size(800, 600);
         this.StartPosition = FormStartPosition.CenterScreen;
-        this.FormBorderStyle = FormBorderStyle.None;
+        this.FormBorderStyle = FormBorderStyle.Sizable;
         this.BackColor = Color.FromArgb(15, 17, 25);
         this.Icon = SystemIcons.Application;
 
@@ -48,61 +44,8 @@ class VideoParserDesktop : Form
         // 确保运行时目录
         Directory.CreateDirectory(Path.Combine(baseDir, "data", "downloads"));
 
-        // ====== 自定义标题栏 ======
-        titleBar = new Panel
-        {
-            Height = 32,
-            Dock = DockStyle.Top,
-            BackColor = Color.FromArgb(12, 14, 22)
-        };
-
-        // ====== 左侧可点击圆点（macOS 风格） ======
-        var btnClose = MakeDotButton(14, Color.FromArgb(255, 95, 86), Color.FromArgb(220, 50, 50));
-        btnClose.Click += (s, e) => Shutdown();
-        btnClose.MouseEnter += (s, e) => { var b = (Button)s; b.Text = "×"; b.Font = new Font("Segoe UI", 8, FontStyle.Bold); };
-        btnClose.MouseLeave += (s, e) => { var b = (Button)s; b.Text = ""; };
-        titleBar.Controls.Add(btnClose);
-
-        var btnMin = MakeDotButton(30, Color.FromArgb(255, 189, 46), Color.FromArgb(220, 160, 20));
-        btnMin.Click += (s, e) => this.WindowState = FormWindowState.Minimized;
-        btnMin.MouseEnter += (s, e) => { var b = (Button)s; b.Text = "−"; b.Font = new Font("Segoe UI", 8, FontStyle.Bold); };
-        btnMin.MouseLeave += (s, e) => { var b = (Button)s; b.Text = ""; };
-        titleBar.Controls.Add(btnMin);
-
-        var btnMax = MakeDotButton(46, Color.FromArgb(39, 201, 63), Color.FromArgb(30, 180, 50));
-        btnMax.Click += (s, e) => {
-            this.WindowState = this.WindowState == FormWindowState.Maximized
-                ? FormWindowState.Normal : FormWindowState.Maximized;
-        };
-        titleBar.Controls.Add(btnMax);
-
-        // ====== 标题文字 ======
-        var titleLabel = new Label
-        {
-            Text = "视频解析器",
-            ForeColor = Color.FromArgb(100, 100, 110),
-            Font = new Font("Segoe UI", 9, FontStyle.Regular),
-            AutoSize = false,
-            TextAlign = ContentAlignment.MiddleCenter,
-            Dock = DockStyle.Fill
-        };
-        titleBar.Controls.Add(titleLabel);
-
-        // 拖动事件
-        titleBar.MouseDown += (s, e) => { isDragging = true; dragStart = e.Location; };
-        titleBar.MouseMove += (s, e) => { if (isDragging) this.Location = new Point(this.Location.X + e.X - dragStart.X, this.Location.Y + e.Y - dragStart.Y); };
-        titleBar.MouseUp += (s, e) => isDragging = false;
-
-        this.Controls.Add(titleBar);
-
-        // 调整客户区
-        this.ClientSize = new Size(1050, 720);
-
         // ====== WebView2 ======
-        webView = new WebView2
-        {
-            Dock = DockStyle.Fill
-        };
+        webView = new WebView2 { Dock = DockStyle.Fill };
         this.Controls.Add(webView);
 
         // 启动后端服务
@@ -112,7 +55,6 @@ class VideoParserDesktop : Form
         this.Load += async (s, e) =>
         {
             await webView.EnsureCoreWebView2Async(null);
-            // 等待后端完全就绪后加载前端
             for (int i = 0; i < 30; i++)
             {
                 try
@@ -128,39 +70,16 @@ class VideoParserDesktop : Form
         this.FormClosing += (s, e) => Shutdown();
     }
 
-    private Button MakeDotButton(int x, Color color, Color hoverColor)
-    {
-        var btn = new Button
-        {
-            Size = new Size(14, 14),
-            Location = new Point(x, 9),
-            FlatStyle = FlatStyle.Flat,
-            ForeColor = Color.White,
-            BackColor = color,
-            Text = "",
-            Font = new Font("Segoe UI", 7, FontStyle.Bold),
-            TextAlign = ContentAlignment.MiddleCenter
-        };
-        btn.FlatAppearance.BorderSize = 0;
-        btn.FlatAppearance.MouseOverBackColor = hoverColor;
-        // 圆形
-        var path = new System.Drawing.Drawing2D.GraphicsPath();
-        path.AddEllipse(0, 0, 14, 14);
-        btn.Region = new Region(path);
-        return btn;
-    }
-
     private void StartBackend(string baseDir)
     {
         string nodeExe = Path.Combine(baseDir, "node", "node.exe");
         if (!File.Exists(nodeExe))
         {
-            MessageBox.Show("未找到 node.exe，文件可能损坏。\n路径: " + nodeExe, "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show("未找到 node.exe，文件可能损坏。", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
             Application.Exit();
             return;
         }
 
-        // 检查并安装依赖
         string nmDir = Path.Combine(baseDir, "node_modules");
         if (!Directory.Exists(nmDir))
         {

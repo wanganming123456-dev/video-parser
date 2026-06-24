@@ -19,6 +19,15 @@ data/
 
 # 桌面应用 WebView2 运行时缓存
 desktop/*.exe.WebView2/
+desktop/backend/
+desktop/frontend/
+desktop/server.js
+desktop/package.json
+desktop/.installed
+
+# 编译中间文件
+desktop-app.zip
+%T%/
 
 # 临时文件
 *.tmp
