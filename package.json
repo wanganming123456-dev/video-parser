@@ -1,0 +1,16 @@
+{
+  "name": "video-parser",
+  "version": "1.0.0",
+  "description": "抖音/快手视频无水印解析工具",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  },
+  "devDependencies": {
+    "nexe": "^5.0.0-beta.4"
+  }
+}
