@@ -1,23 +1,12 @@
 /**
- * 桌面版 — 主应用逻辑 v2
- * 侧边栏导航 + 页面路由 + 窗口控制
+ * 桌面版 — 主应用逻辑 v3
+ * 标题栏/关闭按钮由 C# WinForms 原生提供，HTML 只管业务
  */
 (function(){
 'use strict';
 var currentPage='parse',tasks={items:[]},pollTimer=null;
 function $(s){return document.querySelector(s);}
 function $$(s){return document.querySelectorAll(s);}
-
-// ========== 窗口控制按钮 ==========
-var btnClose=$('#btnClose'), btnMin=$('#btnMin'), btnMax=$('#btnMax');
-if(btnClose) btnClose.onclick=function(){window.close();};
-if(btnMin)   btnMin.onclick=function(){
-  // 通过 WebView2 宿主窗口最小化
-  try{window.chrome.webview.hostObjects.sync.window.minimize();}catch(e){}
-};
-if(btnMax)   btnMax.onclick=function(){
-  try{window.chrome.webview.hostObjects.sync.window.toggleMaximize();}catch(e){}
-};
 
 // ========== Toast ==========
 window.Toast={show:function(m,t){
