@@ -1,45 +1,42 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>视频解析器</title>
-    <link rel="stylesheet" href="css/app.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>视频解析器</title>
+<link rel="stylesheet" href="css/app.css">
 </head>
 <body>
 
-    <!-- 左侧导航 -->
+<div class="app-layout">
+    <!-- 侧边栏 -->
     <aside class="sidebar">
-        <div class="logo">Video<span class="dot">.</span>Parser</div>
-        <nav>
-            <div class="nav-item active" data-page="parse">
-                🏠 解析中心
-            </div>
-            <div class="nav-item" data-page="history">
-                📋 历史记录
-            </div>
-            <div class="nav-item" data-page="settings">
-                ⚙️ 设置
-            </div>
+        <div class="sidebar-brand">Video<span>.</span>Pro</div>
+        <nav class="sidebar-nav">
+            <div class="sidebar-nav-item active" data-page="parse">🏠 解析中心 <span class="badge" id="taskBadge" style="display:none">0</span></div>
+            <div class="sidebar-nav-item" data-page="history">📋 历史记录</div>
+            <div class="sidebar-nav-item" data-page="settings">⚙️ 设置</div>
         </nav>
+        <div class="sidebar-footer"><span class="dot"></span> 服务运行中</div>
     </aside>
 
-    <!-- 主区域 -->
-    <main class="main">
-        <div class="header">
-            <h1 id="pageTitle">解析中心</h1>
-            <p id="pageDesc">粘贴视频分享链接，一键获取无水印视频</p>
+    <!-- 主内容 -->
+    <div class="main-area">
+        <div class="titlebar">
+            <div class="titlebar-actions">
+                <div class="titlebar-dot close" id="btnClose" title="关闭"></div>
+                <div class="titlebar-dot min" id="btnMin" title="最小化"></div>
+                <div class="titlebar-dot max" id="btnMax" title="最大化"></div>
+            </div>
+            <div class="titlebar-title">VIDEO PARSER</div>
         </div>
-        <div class="content" id="pageContent">
-            <!-- 由 JS 动态渲染 -->
+        <div class="content-area" id="pageContent">
+            <!-- JS 动态渲染 -->
         </div>
-    </main>
+    </div>
+</div>
 
-    <!-- JS -->
-    <script src="js/api.js"></script>
-    <script src="js/components/inputBox.js"></script>
-    <script src="js/components/taskList.js"></script>
-    <script src="js/components/historyList.js"></script>
-    <script src="js/app.js"></script>
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>

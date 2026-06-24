@@ -17,6 +17,10 @@ data/
 .vscode/
 .idea/
 
+# 桌面应用 WebView2 运行时缓存
+desktop/*.exe.WebView2/
+
 # 临时文件
 *.tmp
 *.log
+%CSCTMP%/
