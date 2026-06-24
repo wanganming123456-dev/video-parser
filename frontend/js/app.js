@@ -23,7 +23,7 @@ var badge=$('#taskBadge');
 var pages={
   parse:{
     render:function(){
-      content.innerHTML='<div class="input-group"><h3>🔗 粘贴链接</h3><div class="input-row"><input type="text" id="urlInput" placeholder="抖音 / 快手分享链接..."><button class="btn-primary" id="btnParse">🚀 开始解析</button></div><div class="tags"><span class="tag">🎵 抖音</span><span class="tag">🎬 快手</span><span class="tag">📱 APP分享</span><span class="tag">💻 网页链接</span></div></div><div id="taskList"><h3>📥 任务队列</h3><div id="taskListContent"><div class="empty-state"><div class="icon">📭</div><p>还没有解析任务</p></div></div></div>';
+      content.innerHTML='<div class="input-group"><h3>🔗 粘贴链接</h3><div class="input-row"><input type="text" id="urlInput" placeholder="抖音 / 快手 / X(Twitter) 分享链接..."><button class="btn-primary" id="btnParse">🚀 开始解析</button></div><div class="tags"><span class="tag">🎵 抖音</span><span class="tag">🎬 快手</span><span class="tag">🐦 X/Twitter</span><span class="tag">💻 网页链接</span></div></div><div id="taskList"><h3>📥 任务队列</h3><div id="taskListContent"><div class="empty-state"><div class="icon">📭</div><p>还没有解析任务</p></div></div></div>';
       bindInput();
       renderTasks(tasks);
     }

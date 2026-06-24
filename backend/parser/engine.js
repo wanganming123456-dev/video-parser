@@ -4,6 +4,7 @@
  */
 const DouyinParser = require('./douyin');
 const KuaishouParser = require('./kuaishou');
+const TwitterParser = require('./twitter');
 const { Task } = require('../db/models');
 
 class ParserEngine {
@@ -12,7 +13,8 @@ class ParserEngine {
         /** @type {BaseParser[]} 已注册的解析器 */
         this.parsers = [
             new DouyinParser(),
-            new KuaishouParser()
+            new KuaishouParser(),
+            new TwitterParser()
         ];
     }
 
