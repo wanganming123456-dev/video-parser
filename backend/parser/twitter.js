@@ -1,8 +1,14 @@
 /**
  * Twitter/X 解析器
- * 使用国内可用的免费第三方 API
+ * 通过本地代理(127.0.0.1:3456)访问国外服务器
+ * 不影响其他平台（代理仅用于 Twitter 请求）
  */
 const BaseParser = require('./base');
+const { HttpsProxyAgent } = require('https-proxy-agent');
+
+// 本地 DeepSeek 代理
+const PROXY_URL = 'http://127.0.0.1:3456';
+const proxyAgent = new HttpsProxyAgent(PROXY_URL);
 
 class TwitterParser extends BaseParser {
 
@@ -17,104 +23,89 @@ class TwitterParser extends BaseParser {
     }
 
     async parse(url) {
-        // 提取推文 ID
         const tweetId = this._extractTweetId(url);
         if (!tweetId) throw new Error('无法从链接中提取推文 ID');
 
-        const errors = [];
-
-        // 方案 1: api.videofetcher.net (免费层)
+        // 方案 1: Syndication API (通过代理)
         try {
-            return await this._tryFetchAPI(tweetId);
-        } catch (e) { errors.push('API1:' + e.message); }
-
-        // 方案 2: 通过CORS代理访问 Syndication API
-        try {
-            return await this._trySyndicationProxy(tweetId);
-        } catch (e) { errors.push('API2:' + e.message); }
-
-        throw new Error('Twitter 解析失败: ' + errors.join(' | '));
+            return await this._syndicationAPI(tweetId);
+        } catch (e) {
+            // 方案 2: fxTwitter
+            try {
+                return await this._fxtwitter(tweetId);
+            } catch (e2) {
+                throw new Error('Twitter 解析失败 — Syndication: ' + e.message + ' | fxTwitter: ' + e2.message);
+            }
+        }
     }
 
-    /** 从 URL 提取推文 ID */
     _extractTweetId(url) {
         const m = url.match(/\/status\/(\d+)/);
-        if (m) return m[1];
-        // 短链 t.co
-        const m2 = url.match(/t\.co\/([A-Za-z0-9]+)/);
-        if (m2) return null; // 需要先解开短链
-        return null;
+        return m ? m[1] : null;
     }
 
-    /** 方案 1: 使用免费视频解析 API */
-    async _tryFetchAPI(tweetId) {
-        const apiUrl = 'https://api.videofetcher.net/obApi/api/analysis';
-        const xUrl = 'https://x.com/i/status/' + tweetId;
-
+    /** Syndication API — 走代理 */
+    async _syndicationAPI(tweetId) {
+        const apiUrl = 'https://cdn.syndication.twimg.com/tweet-result?id=' + tweetId + '&lang=en';
         const resp = await fetch(apiUrl, {
-            method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'Origin': 'https://api.videofetcher.net',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'application/json'
             },
-            body: JSON.stringify({ url: xUrl })
+            agent: proxyAgent  // 仅此请求走代理
         });
 
-        if (!resp.ok) throw new Error('API 请求失败 HTTP ' + resp.status);
-        const json = await resp.json();
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const data = await resp.json();
+        if (!data.text) throw new Error('推文不存在或已删除');
 
-        if (json.code !== 200 || !json.data) {
-            throw new Error(json.msg || json.message || 'API 返回异常');
+        const title = (data.text || '').substring(0, 200);
+        let coverUrl = '';
+        let variants = [];
+
+        if (data.mediaDetails) {
+            for (const m of data.mediaDetails) {
+                if (m.type === 'photo') coverUrl = m.media_url_https || '';
+                if (m.video_info && m.video_info.variants) {
+                    variants.push(...m.video_info.variants);
+                }
+            }
         }
+        if (data.video && data.video.variants) variants.push(...data.video.variants);
 
-        const title = json.data.title || json.data.desc || '';
-        const coverUrl = json.data.cover || json.data.thumbnail || '';
-        const videoUrl = json.data.url || json.data.video_url || json.data.download_url || '';
+        const mp4s = variants.filter(v => v.content_type === 'video/mp4');
+        if (mp4s.length === 0) throw new Error('该推文不含视频');
 
-        if (!videoUrl) throw new Error('API 未返回视频地址');
-        return { title, cover_url: coverUrl, video_url: videoUrl };
+        mp4s.sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
+        return { title, cover_url: coverUrl, video_url: mp4s[0].src || '' };
     }
 
-    /** 方案 2: 通过 CORS 代理访问 Syndication API */
-    async _trySyndicationProxy(tweetId) {
-        const syndicationUrl = 'https://cdn.syndication.twimg.com/tweet-result?id=' + tweetId + '&lang=en';
-
-        // 尝试多个 CORS 代理
-        const proxies = [
-            { name: 'corsproxy', url: 'https://corsproxy.io/?' + encodeURIComponent(syndicationUrl) },
-            { name: 'codetabs', url: 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(syndicationUrl) },
+    /** fxTwitter API — 也走代理 */
+    async _fxtwitter(tweetId) {
+        const urls = [
+            'https://api.fxtwitter.com/status/' + tweetId,
+            'https://api.vxtwitter.com/status/' + tweetId,
         ];
-
-        for (const proxy of proxies) {
+        for (const url of urls) {
             try {
-                const resp = await fetch(proxy.url, {
-                    headers: { 'Accept': 'application/json' }
+                const resp = await fetch(url, {
+                    headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' },
+                    agent: proxyAgent
                 });
                 if (!resp.ok) continue;
                 const json = await resp.json();
-
-                if (json.text) {
-                    const title = json.text.substring(0, 200);
-                    const variants = json.mediaDetails
-                        ? json.mediaDetails[0]?.video_info?.variants
-                        : json.video?.variants || [];
-
-                    // 筛选最高码率 mp4
-                    const mp4s = variants.filter(v => v.content_type === 'video/mp4');
-                    if (mp4s.length > 0) {
-                        mp4s.sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
-                        return {
-                            title,
-                            cover_url: json.mediaDetails?.[0]?.media_url_https || '',
-                            video_url: mp4s[0].src || ''
-                        };
-                    }
+                const media = json.tweet?.media?.extended || json.tweet?.media?.all || [];
+                const video = media.find(m => m.type === 'video' || m.type === 'gif');
+                if (video && video.url) {
+                    return {
+                        title: (json.tweet?.text || '').substring(0, 200),
+                        cover_url: json.tweet?.media?.photos?.[0]?.url || '',
+                        video_url: video.url
+                    };
                 }
             } catch (_) { continue; }
         }
-        throw new Error('所有代理均无法访问 Syndication API');
+        throw new Error('fxTwitter API 失败');
     }
 }
 
